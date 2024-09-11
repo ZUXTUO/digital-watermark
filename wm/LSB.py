@@ -9,12 +9,23 @@ from wm.arnold import arnold_encode, arnold_decode
 def embed_LSB(pic, mark, confuse=False):
     if confuse:
         mark = arnold_encode(mark)
+        
     pic = np.array(pic)
     mark = np.array(mark)
-    for i in range(mark.shape[0]):
-        for j in range(mark.shape[1]):
+    
+    # Get dimensions
+    pic_height, pic_width = pic.shape[0], pic.shape[1]
+    mark_height, mark_width = mark.shape[0], mark.shape[1]
+    
+    # Create a tiled watermark
+    tiled_mark = np.tile(mark, (pic_height // mark_height + 1, pic_width // mark_width + 1))
+    tiled_mark = tiled_mark[:pic_height, :pic_width]
+    
+    for i in range(pic_height):
+        for j in range(pic_width):
             blue = pic[i, j, 2]
-            pic[i, j, 2] = blue - blue % 2 + mark[i][j]
+            pic[i, j, 2] = blue - blue % 2 + tiled_mark[i, j]
+    
     return Image.fromarray(pic)
 
 

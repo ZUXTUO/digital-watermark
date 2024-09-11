@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, send_from_directory, abort
 from flask_cors import CORS
 from PIL import Image
 from wm.text2img import text2img
@@ -6,6 +6,9 @@ import base64
 from io import BytesIO
 import os
 import uuid
+
+import sys
+sys.path.append('./wm')
 
 from wm.LSB import embed_LSB, extract_LSB
 from wm.DCT import embed_DCT, extract_DCT
@@ -26,9 +29,17 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 
-@app.route('/api')
-def hello_world():
-    return 'Hello, World!'
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_static(path):
+    static_folder = os.path.join(basedir, 'ui')
+    if path == '':
+        path = 'index.html'
+    full_path = os.path.join(static_folder, path)
+    if os.path.isdir(full_path) or os.path.isfile(full_path):
+        return send_from_directory(static_folder, path)
+    else:
+        abort(404)
 
 
 @app.route('/api/getmark')
@@ -121,3 +132,6 @@ def get_img(filename):
         response = make_response(image_data)
         response.headers['Content-Type'] = 'image/png'
         return response
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, use_reloader=False, threaded=True)
